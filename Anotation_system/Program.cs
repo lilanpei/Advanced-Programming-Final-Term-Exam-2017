@@ -12,7 +12,6 @@ using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 using System.Data.SQLite;
-using Anotation_system.Test;
 
 namespace Annotation_system
 {
@@ -24,18 +23,35 @@ namespace Annotation_system
             new CsharpCodeGenerator(res).GenerateCode();
             new SQLCodeGenerator(res).GenerateCode();
             CompilerResults cr = (new CsharpCodeCompiler()).CompilerCsharpCode();
-            //Type booktype = results.CompiledAssembly.GetType("Book");                   
-            //object book = results.CompiledAssembly.CreateInstance("Book");
-            //Obj.Add(book);
-            //MethodInfo method = type.GetMethod("Execute");
-            //method.Invoke(null, new object[] { });
-            //Type publishertype = results.CompiledAssembly.GetType("Publisher");
-            //object publisher = results.CompiledAssembly.CreateInstance("Publisher");
-            /*
-            T res = (T)Activator.CreateInstance(typeof(T));
-            FieldInfo[] fields = typeof(T).GetFields();
-            fields[fields.Length - 1].SetValue(res, result1);
-            */
+
+            var book1 = cr.CompiledAssembly.CreateInstance("foo.Book");
+            var book2 = cr.CompiledAssembly.CreateInstance("foo.Book");
+
+            var publisher1 = cr.CompiledAssembly.CreateInstance("foo.Publisher");
+            var publisher2 = cr.CompiledAssembly.CreateInstance("foo.Publisher");
+
+            FieldInfo[] fields_book = book1.GetType().GetFields();
+            FieldInfo[] fields_publisher = publisher1.GetType().GetFields();
+
+            fields_publisher[0].SetValue(publisher1, 1);
+            fields_publisher[1].SetValue(publisher1, "BBC");
+            fields_publisher[0].SetValue(publisher2, 2);
+            fields_publisher[1].SetValue(publisher2, "CNN");
+            fields_book[0].SetValue(book1, 1);
+            fields_book[1].SetValue(book1, "CS");
+            fields_book[2].SetValue(book1, publisher1);
+            fields_book[0].SetValue(book2, 2);
+            fields_book[1].SetValue(book2, "AI");
+            fields_book[2].SetValue(book2, publisher1);
+
+            Type type = typeof(List<>).MakeGenericType(fields_publisher[2].FieldType.GetGenericArguments()[0]);
+            var books = Activator.CreateInstance(type);
+            MethodInfo method = type.GetMethod("Add");
+
+            method.Invoke(books, new object[] { book1 });
+            method.Invoke(books, new object[] { book2 });
+            fields_publisher[2].SetValue(publisher1, books);
+
             if (!System.IO.File.Exists("annotation.sqlite"))
             {
                 SQLiteConnection.CreateFile("annotation.sqlite");
@@ -48,43 +64,48 @@ namespace Annotation_system
                     sqlite.Close();
                 }
             }
-            Publisher p = new Publisher();
-            p.id = 1;
-            p.name = "BBC";
-            Publisher q = new Publisher();
-            q.id = 2;
-            q.name = "CNN";
-            Book b = new Book();
-            b.id = 1;
-            b.title = "CS";
-            b.publisher = p;
-            Book c = new Book();
-            c.id = 2;
-            c.title = "AI";
-            c.publisher = p;
-            p.books = new List<Book>();
-            p.books.Add(b);                
-            var ep = new EntityManager<Publisher>();
-            ep.remove(p);
-            ep.persist(p);
-            ep.remove(q);
-            ep.persist(q);
-            var eb = new EntityManager<Book>();
-            eb.remove(b);
-            eb.persist(b);
-            eb.remove(c);
-            eb.persist(c);
-            Book rb = eb.find(1);
-            Publisher rp = ep.find(1);
+
+            Type type_p = typeof(EntityManager<>).MakeGenericType(publisher1.GetType());
+            var ep = Activator.CreateInstance(type_p);
+
+            MethodInfo find_p = type_p.GetMethod("find");
+            MethodInfo remove_p = type_p.GetMethod("remove");
+            MethodInfo persist_p = type_p.GetMethod("persist");
+            MethodInfo createQuery_p = type_p.GetMethod("createQuery");
+
+            remove_p.Invoke(ep, new object[] { publisher1 });
+            remove_p.Invoke(ep, new object[] { publisher1 });
+            persist_p.Invoke(ep, new object[] { publisher1 });
+            remove_p.Invoke(ep, new object[] { publisher2 });
+            persist_p.Invoke(ep, new object[] { publisher2 });
+
+            Type type_b = typeof(EntityManager<>).MakeGenericType(book1.GetType());
+            var eb = Activator.CreateInstance(type_b);
+
+            MethodInfo find_b = type_b.GetMethod("find");
+            MethodInfo remove_b = type_b.GetMethod("remove");
+            MethodInfo persist_b = type_b.GetMethod("persist");
+            MethodInfo createQuery_b = type_b.GetMethod("createQuery");
+
+            remove_b.Invoke(eb, new object[] { book1 });
+            persist_b.Invoke(eb, new object[] { book1 });
+            remove_b.Invoke(eb, new object[] { book2 });
+            persist_b.Invoke(eb, new object[] { book2 });
+
+            find_b.Invoke(eb, new object[] { 1 });
+            find_p.Invoke(ep, new object[] { 1 });
+
             string query1 = string.Format("Delete From book \n Where id = 2; ");
             string query2 = string.Format("Select * From book \n Where id = 1; ");
             string query3 = string.Format("Update book \n Set title = 'CNN' \n Where id = 1; ");
-            List<Book> ObjList1 = new List<Book>();
-            List<Book> ObjList2 = new List<Book>();
-            Query<Book> q1 = eb.createQuery(query3);
-            Query<Book> q2 = eb.createQuery(query2);
-            q1.execute();
-            ObjList2 = q2.getResultList();
+
+            Type type_q = typeof(Query<>).MakeGenericType(book1.GetType());
+
+            MethodInfo execute = type_q.GetMethod("execute");
+            MethodInfo getResultList = type_q.GetMethod("getResultList");
+            execute.Invoke(createQuery_b.Invoke(eb, new object[] { query3 }), new object[] { });
+            var resgrl = getResultList.Invoke(createQuery_b.Invoke(eb, new object[] { query2 }), new object[] { });
+
             return;
         }
     }

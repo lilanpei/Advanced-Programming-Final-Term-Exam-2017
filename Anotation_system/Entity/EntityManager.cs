@@ -1,5 +1,4 @@
-﻿using Anotation_system.Test;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Data.SqlClient;
@@ -31,6 +30,7 @@ namespace Anotation_system.Entity
                 T res = (T)Activator.CreateInstance(typeof(T));
                 selectQuery = string.Format("Select * From {0} \n Where id = {1};", tableName, primaryKey.ToString());
                 Console.WriteLine("{0}", selectQuery);
+
                 using (SQLiteCommand selectCommand = new SQLiteCommand(selectQuery, sqlite))
                 {
                     using (SQLiteDataReader r = selectCommand.ExecuteReader())
@@ -39,11 +39,11 @@ namespace Anotation_system.Entity
                         {
                             FieldInfo[] fields = typeof(T).GetFields();
                             Type type;
+
                             for (int i = 0; i < fields.Length; i++)
                             {
                                 if (!(fields[i].FieldType.Namespace.ToString() == "System"))
                                 {
-
                                     if (fields[i].FieldType.IsGenericType)
                                     {
                                         type = typeof(EntityManager<>).MakeGenericType(fields[i].FieldType.GetGenericArguments()[0]);
@@ -56,7 +56,8 @@ namespace Anotation_system.Entity
                                     if (i == r.FieldCount)
                                     {
                                         MethodInfo method = type.GetMethod("findList");
-                                        object result1 = method.Invoke(obj, new object[] { new Key("Fk_Id", r[0].ToString()) });
+
+                                        object result1 = method.Invoke(obj, new object[] { (new Key("Fk_Id", r[0].ToString())), res });
                                         fields[fields.Length - 1].SetValue(res, result1);
                                     }
                                     else
@@ -77,7 +78,7 @@ namespace Anotation_system.Entity
             }
         }
 
-        public List<T> findList(Key keyObject)
+        public List<T> findList(Key keyObject, object v)
         {
             using (SQLiteConnection sqlite = new SQLiteConnection("Data Source=annotation.sqlite"))
             {
@@ -98,40 +99,16 @@ namespace Anotation_system.Entity
                             T res = (T)Activator.CreateInstance(typeof(T));
                             ListObj.Add(res);
                             FieldInfo[] fields = typeof(T).GetFields();
-                            Type type;
+
                             for (int i = 0; i < fields.Length; i++)
                             {
                                 if (!(fields[i].FieldType.Namespace.ToString() == "System"))
                                 {
-                                    if (fields[i].FieldType.IsGenericType)
-                                    {
-                                        type = typeof(EntityManager<>).MakeGenericType(fields[i].FieldType.GetGenericArguments()[0]);
-                                    }
-                                    else
-                                    {
-                                        type = typeof(EntityManager<>).MakeGenericType(fields[i].FieldType);
-                                    }
-                                    var obj = Activator.CreateInstance(type);
-
-                                    if (i == r.FieldCount)
-                                    {
-                                        MethodInfo method = type.GetMethod("findList");
-                                        object result1 = method.Invoke(obj, new object[] { new Key("Fk_Id", r[0].ToString()) });
-                                        fields[fields.Length - 1].SetValue(res, result1);
-                                    }
-                                    /*
-                                    else
-                                    {
-                                        MethodInfo method = type.GetMethod("find");
-                                        object result = method.Invoke(obj, new object[] { r[i] });
-                                        fields[fields.Length - 1].SetValue(res, result);
-                                    }
-                                    */
+                                        fields[fields.Length - 1].SetValue(res, v);
                                 }
                                 else
                                     fields[i].SetValue(res, r[i]);
                             }
-
                         }
                         sqlite.Close();
                         return (List<T>)ListObj;

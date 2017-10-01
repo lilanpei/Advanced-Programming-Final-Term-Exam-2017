@@ -15,7 +15,6 @@ namespace Anotation_system.CodeGenerator
     {
         public CompilerResults CompilerCsharpCode()
         {
-            //List<object>  Obj = new List<object>();
             string sourceTemplate =
             @"using System; 
             using System.Collections.Generic;
@@ -41,14 +40,6 @@ namespace Anotation_system.CodeGenerator
 
                 if (!results.Errors.HasErrors)
                 {
-                    //Type booktype = results.CompiledAssembly.GetType("Book");                   
-                    //object book = results.CompiledAssembly.CreateInstance("Book");
-                    //Obj.Add(book);
-                    //MethodInfo method = type.GetMethod("Execute");
-                    //method.Invoke(null, new object[] { });
-                    //Type publishertype = results.CompiledAssembly.GetType("Publisher");
-                    //object publisher = results.CompiledAssembly.CreateInstance("Publisher");
-                    //Obj.Add(publisher);
                     return results;
                 }
                 else
