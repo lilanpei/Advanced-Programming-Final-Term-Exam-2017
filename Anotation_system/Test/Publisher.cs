@@ -11,7 +11,5 @@ namespace Anotation_system.Test
         public int id;
         public string name;
         public List<Book> books;
-        public bool hasbook;
-        public Publisher() { hasbook = false; }
     }
 }

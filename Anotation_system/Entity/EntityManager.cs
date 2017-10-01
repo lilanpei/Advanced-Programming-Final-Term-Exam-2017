@@ -27,54 +27,57 @@ namespace Anotation_system.Entity
                 sqlite.Open();
                 string tableName = "";
                 string selectQuery = "";
-
-                if (typeof(T).Name == "Book")
-                {
-                    tableName = "Book";
-                    selectQuery = string.Format("Select * From {0} \n Where id = {1};", tableName, primaryKey.ToString());
-                }
-                else if (typeof(T).Name == "Publisher")
-                {
-                    tableName = "Publisher";
-                    selectQuery = string.Format("Select * From {0} \n Where id = {1};", tableName, primaryKey.ToString());
-                }
-                else
-                    throw new Exception(" T type error");
-                Console.WriteLine("{0}", selectQuery);
-                SQLiteCommand selectCommand = new SQLiteCommand(selectQuery, sqlite);
-                SQLiteDataReader r = selectCommand.ExecuteReader();
-
+                tableName = typeof(T).Name.ToLower();
                 T res = (T)Activator.CreateInstance(typeof(T));
-                while (r.Read())
+                selectQuery = string.Format("Select * From {0} \n Where id = {1};", tableName, primaryKey.ToString());
+                Console.WriteLine("{0}", selectQuery);
+                using (SQLiteCommand selectCommand = new SQLiteCommand(selectQuery, sqlite))
                 {
-                    FieldInfo[] fields = typeof(T).GetFields();
-                    fields[0].SetValue(res, r.GetInt32(0));
-                    if (typeof(T).Name == "Book")
+                    using (SQLiteDataReader r = selectCommand.ExecuteReader())
                     {
-                        fields[1].SetValue(res, r.GetString(1));
-                        var ep = new EntityManager<Publisher>();
-                        fields[2].SetValue(res, ep.find(r.GetInt32(2)));
-                    }
-                    else if (typeof(T).Name == "Publisher")
-                    {
-                        fields[1].SetValue(res, r.GetString(1));
-                        if (r.GetString(2) == "true")
+                        if (r.Read())
                         {
-                            var eb = new EntityManager<Book>();
-                            List<Book> lb = new List<Book>();
-                            lb = eb.findList(new Key("Fk_Id", r.GetInt32(0).ToString()));
-                            fields[2].SetValue(res, lb);
+                            FieldInfo[] fields = typeof(T).GetFields();
+                            Type type;
+                            for (int i = 0; i < fields.Length; i++)
+                            {
+                                if (!(fields[i].FieldType.Namespace.ToString() == "System"))
+                                {
+
+                                    if (fields[i].FieldType.IsGenericType)
+                                    {
+                                        type = typeof(EntityManager<>).MakeGenericType(fields[i].FieldType.GetGenericArguments()[0]);
+                                    }
+                                    else
+                                    {
+                                        type = typeof(EntityManager<>).MakeGenericType(fields[i].FieldType);
+                                    }
+                                    var obj = Activator.CreateInstance(type);
+                                    if (i == r.FieldCount)
+                                    {
+                                        MethodInfo method = type.GetMethod("findList");
+                                        object result1 = method.Invoke(obj, new object[] { new Key("Fk_Id", r[0].ToString()) });
+                                        fields[fields.Length - 1].SetValue(res, result1);
+                                    }
+                                    else
+                                    {
+                                        MethodInfo method = type.GetMethod("find");
+                                        object result = method.Invoke(obj, new object[] { r[i] });
+                                        fields[fields.Length - 1].SetValue(res, result);
+                                    }
+                                }
+                                else
+                                    fields[i].SetValue(res, r[i]);
+                            }
                         }
                     }
-                    else
-                        throw new Exception(" T type error");
                 }
                 sqlite.Close();
                 return (T)res;
             }
         }
 
-        private List<T> findList(Key keyObject)
+        public List<T> findList(Key keyObject)
         {
             using (SQLiteConnection sqlite = new SQLiteConnection("Data Source=annotation.sqlite"))
             {
@@ -82,32 +85,58 @@ namespace Anotation_system.Entity
                 string tableName = "";
                 string selectQuery = "";
 
-                if (typeof(T).Name == "Book")
+                tableName = typeof(T).Name.ToLower();
+                selectQuery = string.Format("Select * From {0} \n Where {1} = {2};", tableName, keyObject.name, keyObject.value);
+                Console.WriteLine("{0}", selectQuery);
+                using (SQLiteCommand selectCommand = new SQLiteCommand(selectQuery, sqlite))
                 {
-                    tableName = "Book";
-                    selectQuery = string.Format("Select * From {0} \n Where {1} = {2};", tableName, keyObject.name, keyObject.value);
-
-                    Console.WriteLine("{0}", selectQuery);
-                    SQLiteCommand selectCommand = new SQLiteCommand(selectQuery, sqlite);
-                    SQLiteDataReader r = selectCommand.ExecuteReader();
-                    List<T> ListObj = new List<T>();
-                    while (r.Read())
+                    using (SQLiteDataReader r = selectCommand.ExecuteReader())
                     {
-                        T res = (T)Activator.CreateInstance(typeof(T));
-                        ListObj.Add(res);
-                        FieldInfo[] fields = typeof(T).GetFields();
-                        fields[0].SetValue(res, r.GetInt32(0));
-                        fields[1].SetValue(res, r.GetString(1));
-                        //var ep = new EntityManager<Publisher>();
-                        //fields[2].SetValue(res, ep.find(r.GetInt32(2)));
+                        List<T> ListObj = new List<T>();
+                        while (r.Read())
+                        {
+                            T res = (T)Activator.CreateInstance(typeof(T));
+                            ListObj.Add(res);
+                            FieldInfo[] fields = typeof(T).GetFields();
+                            Type type;
+                            for (int i = 0; i < fields.Length; i++)
+                            {
+                                if (!(fields[i].FieldType.Namespace.ToString() == "System"))
+                                {
+                                    if (fields[i].FieldType.IsGenericType)
+                                    {
+                                        type = typeof(EntityManager<>).MakeGenericType(fields[i].FieldType.GetGenericArguments()[0]);
+                                    }
+                                    else
+                                    {
+                                        type = typeof(EntityManager<>).MakeGenericType(fields[i].FieldType);
+                                    }
+                                    var obj = Activator.CreateInstance(type);
 
+                                    if (i == r.FieldCount)
+                                    {
+                                        MethodInfo method = type.GetMethod("findList");
+                                        object result1 = method.Invoke(obj, new object[] { new Key("Fk_Id", r[0].ToString()) });
+                                        fields[fields.Length - 1].SetValue(res, result1);
+                                    }
+                                    /*
+                                    else
+                                    {
+                                        MethodInfo method = type.GetMethod("find");
+                                        object result = method.Invoke(obj, new object[] { r[i] });
+                                        fields[fields.Length - 1].SetValue(res, result);
+                                    }
+                                    */
+                                }
+                                else
+                                    fields[i].SetValue(res, r[i]);
+                            }
+
+                        }
+                        sqlite.Close();
+                        return (List<T>)ListObj;
                     }
-                    sqlite.Close();
-                    return (List<T>)ListObj;
                 }
-                else
-                    throw new Exception(" T type error");
-
             }
         }
 
@@ -118,31 +147,32 @@ namespace Anotation_system.Entity
                 sqlite.Open();
                 string tableName = "";
                 string insertQuery = "";
+                Type type;
                 FieldInfo[] fields = typeof(T).GetFields();
                 string values = fields[0].GetValue(entity).ToString();
 
-                if (entity is Book)
+                tableName = typeof(T).Name.ToLower();
+                for (int i = 1; i < fields.Length; i++)
                 {
-                    tableName = "Book";
-                    values = string.Format("{0},'{1}'", values, fields[1].GetValue(entity).ToString());
-                    values = string.Format("{0},'{1}'", values, ((Publisher)fields[fields.Length - 1].GetValue(entity)).id);
-                    insertQuery = string.Format("Insert Into {0} \n Values({1});", tableName, values);
-                }
-                else if (entity is Publisher)
-                {
-                    tableName = "Publisher";
-                    values = string.Format("{0},'{1}'", values, fields[1].GetValue(entity).ToString());
-                    if ((bool)fields[fields.Length - 1].GetValue(entity))
-                        values = string.Format("{0},'true'", values);
+                    if (!(fields[i].FieldType.Namespace.ToString() == "System"))
+                    {
+                        if (!(fields[i].FieldType.IsGenericType))
+                        {
+                            type = typeof(EntityManager<>).MakeGenericType(fields[i].FieldType);
+                            object fk = fields[fields.Length - 1].GetValue(entity);
+                            FieldInfo[] fk_fields = fk.GetType().GetFields();
+                            values = string.Format("{0},'{1}'", values, fk_fields[0].GetValue(fk).ToString());
+                        }
+                    }
                     else
-                        values = string.Format("{0},'false'", values);
-                    insertQuery = string.Format("Insert Into {0} \n Values({1});", tableName, values);
+                        values = string.Format("{0},'{1}'", values, fields[1].GetValue(entity).ToString());
                 }
-                else
-                    throw new Exception(" entity type error");
+                insertQuery = string.Format("Insert Into {0} \n Values({1});", tableName, values);
                 Console.WriteLine("{0}", insertQuery);
-                SQLiteCommand insertCommand = new SQLiteCommand(insertQuery, sqlite);
-                insertCommand.ExecuteNonQuery();
+                using (SQLiteCommand insertCommand = new SQLiteCommand(insertQuery, sqlite))
+                {
+                    insertCommand.ExecuteNonQuery();
+                }
                 sqlite.Close();
             }
         }
@@ -157,19 +187,14 @@ namespace Anotation_system.Entity
                 FieldInfo[] fields = typeof(T).GetFields();
                 string values = fields[0].GetValue(entity).ToString();
 
-                if (entity is Book)
-                {
-                    tableName = "Book";
-                    deleteQuery = string.Format("Delete From {0} \n Where id = {1};", tableName, values);
-                }
-                else if (entity is Publisher)
-                {
-                    tableName = "Publisher";
-                    deleteQuery = string.Format("Delete From {0} \n Where id = {1};", tableName, values);
-                }
+                tableName = typeof(T).Name.ToLower();
+                deleteQuery = string.Format("Delete From {0} \n Where id = {1};", tableName, values);
+
                 Console.WriteLine("{0}", deleteQuery);
-                SQLiteCommand deleteCommand = new SQLiteCommand(deleteQuery, sqlite);
-                deleteCommand.ExecuteNonQuery();
+                using (SQLiteCommand deleteCommand = new SQLiteCommand(deleteQuery, sqlite))
+                {
+                    deleteCommand.ExecuteNonQuery();
+                }
                 sqlite.Close();
             }
         }

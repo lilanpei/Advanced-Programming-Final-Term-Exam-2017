@@ -23,9 +23,21 @@ namespace Annotation_system
             var res = new TestParser().Test();
             new CsharpCodeGenerator(res).GenerateCode();
             new SQLCodeGenerator(res).GenerateCode();
+            CompilerResults cr = (new CsharpCodeCompiler()).CompilerCsharpCode();
+            //Type booktype = results.CompiledAssembly.GetType("Book");                   
+            //object book = results.CompiledAssembly.CreateInstance("Book");
+            //Obj.Add(book);
+            //MethodInfo method = type.GetMethod("Execute");
+            //method.Invoke(null, new object[] { });
+            //Type publishertype = results.CompiledAssembly.GetType("Publisher");
+            //object publisher = results.CompiledAssembly.CreateInstance("Publisher");
+            /*
+            T res = (T)Activator.CreateInstance(typeof(T));
+            FieldInfo[] fields = typeof(T).GetFields();
+            fields[fields.Length - 1].SetValue(res, result1);
+            */
             if (!System.IO.File.Exists("annotation.sqlite"))
             {
-                Console.WriteLine("Just entered to create Sync DB");
                 SQLiteConnection.CreateFile("annotation.sqlite");
                 using (SQLiteConnection sqlite = new SQLiteConnection("Data Source=annotation.sqlite"))
                 {
@@ -51,25 +63,25 @@ namespace Annotation_system
             c.title = "AI";
             c.publisher = p;
             p.books = new List<Book>();
-            p.books.Add(b);
-            p.hasbook = true;                    
+            p.books.Add(b);                
             var ep = new EntityManager<Publisher>();
-            ep.persist(p);
             ep.remove(p);
-            ep.persist(q);
             ep.persist(p);
+            ep.remove(q);
+            ep.persist(q);
             var eb = new EntityManager<Book>();
-            eb.persist(b);
             eb.remove(b);
-            eb.persist(c);
             eb.persist(b);
+            eb.remove(c);
+            eb.persist(c);
             Book rb = eb.find(1);
             Publisher rp = ep.find(1);
-            string query1 = string.Format("Update book Set title = 'CNN' \n Where id = 1; ");
-            string query2 = string.Format("Select * From book \n Where id = 2; ");
+            string query1 = string.Format("Delete From book \n Where id = 2; ");
+            string query2 = string.Format("Select * From book \n Where id = 1; ");
+            string query3 = string.Format("Update book \n Set title = 'CNN' \n Where id = 1; ");
             List<Book> ObjList1 = new List<Book>();
             List<Book> ObjList2 = new List<Book>();
-            Query<Book> q1 = eb.createQuery(query1);
+            Query<Book> q1 = eb.createQuery(query3);
             Query<Book> q2 = eb.createQuery(query2);
             q1.execute();
             ObjList2 = q2.getResultList();

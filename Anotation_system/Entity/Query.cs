@@ -28,8 +28,10 @@ namespace Anotation_system.Entity
                 {
                     sqlite.Open();
                     Console.WriteLine("{0}", query);
-                    SQLiteCommand Command = new SQLiteCommand(query, sqlite);
-                    Command.ExecuteNonQuery();
+                    using (SQLiteCommand Command = new SQLiteCommand(query, sqlite))
+                    {
+                        Command.ExecuteNonQuery();
+                    }
                     sqlite.Close();
                 }
             }
@@ -42,34 +44,54 @@ namespace Anotation_system.Entity
             {
                 sqlite.Open();
                 Console.WriteLine("{0}", query);
-                SQLiteCommand Command = new SQLiteCommand(query, sqlite);
-                SQLiteDataReader r = Command.ExecuteReader();
-                while (r.Read())
+                using (SQLiteCommand Command = new SQLiteCommand(query, sqlite))
                 {
-                    T Obj = (T)Activator.CreateInstance(typeof(T));
-
-                    ObjList.Add(Obj);
-
-                    FieldInfo[] fields = typeof(T).GetFields();
-                    fields[0].SetValue(Obj, r.GetInt32(0));
-                    if (typeof(T).Name == "Book")
+                    using (SQLiteDataReader r = Command.ExecuteReader())
                     {
-                        fields[0].SetValue(Obj, r.GetInt32(0));
-                        fields[1].SetValue(Obj, r.GetString(1));
-                        var en = new EntityManager<Publisher>();
-                        fields[2].SetValue(Obj, en.find(r.GetInt32(2)));
+                        while (r.Read())
+                        {
+                            T res = (T)Activator.CreateInstance(typeof(T));
+                            Type type;
+                            ObjList.Add(res);
+                            FieldInfo[] fields = typeof(T).GetFields();
+
+                            for (int i = 0; i < fields.Length; i++)
+                            {
+                                if (!(fields[i].FieldType.Namespace.ToString() == "System"))
+                                {
+
+                                    if (fields[i].FieldType.IsGenericType)
+                                    {
+                                        type = typeof(EntityManager<>).MakeGenericType(fields[i].FieldType.GetGenericArguments()[0]);
+                                    }
+                                    else
+                                    {
+                                        type = typeof(EntityManager<>).MakeGenericType(fields[i].FieldType);
+                                    }
+                                    var obj = Activator.CreateInstance(type);
+
+                                    if (i == r.FieldCount)
+                                    {
+                                        MethodInfo method = type.GetMethod("findList");
+                                        object result1 = method.Invoke(obj, new object[] { new Key("Fk_Id", r[0].ToString()) });
+                                        fields[fields.Length - 1].SetValue(res, result1);
+                                    }
+                                    else
+                                    {
+                                        MethodInfo method = type.GetMethod("find");
+                                        object result = method.Invoke(obj, new object[] { r[i] });
+                                        fields[fields.Length - 1].SetValue(res, result);
+                                    }
+                                }
+                                else
+                                    fields[i].SetValue(res, r[i]);
+                            }
+                        }
+                        sqlite.Close();
                     }
-                    else if (typeof(T).Name == "Publisher")
-                    {
-                        fields[0].SetValue(Obj, r.GetInt32(0));
-                        fields[1].SetValue(Obj, r.GetString(1));
-                    }
-                    else
-                        throw new Exception(" T type error");
+                    return ObjList;
                 }
-                sqlite.Close();
             }
-            return ObjList;
         }
     }
 }

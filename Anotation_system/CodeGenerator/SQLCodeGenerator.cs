@@ -27,7 +27,7 @@ namespace Anotation_system.CodeGenerator
         {
             if (_tables.Current.relation is One2Many)
             {
-                return string.Format("  HasBook VARCHAR(80), \n   PRIMARY KEY({0}) \n", _tables.Current.id.Name);
+                return string.Format("  PRIMARY KEY({0}) \n", _tables.Current.id.Name);
                 //return string.Format("  PRIMARY KEY({0}), \n   Fk_Id INT FOREIGN KEY REFERENCES {1} ({2}) \n", _tables.Current.id.Name, _tables.Current.relation.Name, tables.First(x => x.Name == _tables.Current.relation.Name).id.Name);
             }
             else if (_tables.Current.relation is Many2One)
