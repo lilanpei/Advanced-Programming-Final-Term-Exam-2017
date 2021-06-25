@@ -3,6 +3,7 @@ Advanced Programming  Final Term Exam project in 2017
 ## Introduction
 In this project, you will develop a system of code annotations. The annotation are denoted with an at sign (@)
 followed by the annotation name, followed by a list of key-value pairs. Here is an example:
+```
 @Table(name="book")
 public interface Book {
 @Id(name="id")
@@ -22,6 +23,7 @@ String name;
  mappedBy="publisher")
  List<Book> books;
 }
+```
 ## Exercise 1
 Design a set of classes to represent annotated code.
 ## Exercise 2
@@ -33,11 +35,13 @@ that produces a corresponding SQL schema for each interface.
 Ensure to use polymorphism whenever possible.
 ## Exercise 4
 Design and implement an IEntityManager class, providing the following interface:
+```
 interface IEntityManager<T> {
  void persist(T entity);
  void remove(T entity);
  T find(Object primaryKey);
 }
+```
 Method persist() serializes the entity and inserts it in the appropriate tables. For example, an instance of
 Book must store a row in table Book as well as one in the in the Publisher table corresponding to the book
 publisher attribute object. Method remove() instead will just perform the removal of the row in the Book
@@ -49,12 +53,14 @@ such queries.
 Show the SQL queries produced for the example in the introduction.
 ## Exercise 5
 Extend the IEntityManager interface to include the following method:
+```
  Query<T> createQuery(String query);
 where parameter query is a string expressing a SQL query and the Query implements this interface:
 interface IQuery<T> {
  List<T> getResultList();
  void execute();
 }
+```
 The method getResultList() performs the query and “hydrates” (i.e. deserializes into objects) the result
 set into a list of objects.
 The method execute() is used to perform update or delete SQL queries.
