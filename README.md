@@ -1,6 +1,27 @@
 # Advanced-Programming-Final-Term-Exam-2017
 Advanced Programming  Final Term Exam project in 2017
-
+## Introduction
+In this project, you will develop a system of code annotations. The annotation are denoted with an at sign (@)
+followed by the annotation name, followed by a list of key-value pairs. Here is an example:
+@Table(name="book")
+public interface Book {
+@Id(name="id")
+Integer id;
+@Column(name="title", length="80")
+String title;
+@Many2One(name="publisher", target="Publisher")
+Publisher publisher;
+}
+@Table(name=”publisher”)
+public interface Publisher {
+@Id(name="id")
+Integer id;
+@Column(name="name", length="80")
+String name;
+@One2Many(name="books", target="Book",
+ mappedBy="publisher")
+ List<Book> books;
+}
 ## Exercise 1
 Design a set of classes to represent annotated code.
 ## Exercise 2
